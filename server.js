@@ -72,20 +72,20 @@ app.post('/api/frases-clave', async (req, res) => {
     }
 });
 
-// Endpoint 5: Traducción de Texto (Nuevo)
+// Endpoint 5: Traducción de Texto 
 app.post('/api/traduccion', async (req, res) => {
     try {
         const { texto, idiomaDestino } = req.body;
 
-        // OCI requiere estructura de "Batch" (lotes) para la traducción, aunque sea 1 solo texto
         const request = {
             batchLanguageTranslationDetails: {
-                compartmentId: process.env.OCI_TENANCY, // Usamos tu Tenancy OCID como compartimento base
-                targetLanguageCode: idiomaDestino || "en", // Inglés por defecto si no se envía
+                compartmentId: process.env.OCI_TENANCY, 
+                targetLanguageCode: idiomaDestino || "en", 
                 documents: [
                     {
-                        key: "doc_1", // Un identificador único para el documento en el lote
-                        text: texto
+                        key: "doc_1", 
+                        text: texto,
+                        languageCode: "auto" // El parámetro es obligatorio y activa la auto-detección
                     }
                 ]
             }
@@ -94,8 +94,8 @@ app.post('/api/traduccion', async (req, res) => {
         const response = await client.batchLanguageTranslation(request);
         res.json(response.batchLanguageTranslationResult);
     } catch (error) {
-        console.error("Error en Traducción:", error);
-        res.status(500).json({ error: 'Error al traducir el texto' });
+        console.error("Error exacto en Traducción:", error.message || error);
+        res.status(500).json({ error: 'Fallo en la comunicación con OCI para traducir.' });
     }
 });
 

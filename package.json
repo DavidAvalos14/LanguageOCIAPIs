@@ -19,6 +19,7 @@
   "description": "",
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "oci-ailanguage": "^2.132.0",
     "oci-common": "^2.132.0"

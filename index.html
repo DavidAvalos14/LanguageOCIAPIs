@@ -37,7 +37,7 @@
             <label for="idiomaDestino">Traducir a:</label>
             <select id="idiomaDestino">
                 <option value="en">Inglés</option>
-                <option value="fr">Francés</option>
+                <option value="es">Español</option> <option value="fr">Francés</option>
                 <option value="pt">Portugués</option>
                 <option value="de">Alemán</option>
                 <option value="it">Italiano</option>
@@ -106,7 +106,109 @@
         }
 
         function mostrarResultado(data) {
-            document.getElementById('resultado').innerText = JSON.stringify(data, null, 2);
+            const contenedor = document.getElementById('resultado');
+            
+            // 1. Manejo de Errores globales del backend
+            if (data.error) {
+                contenedor.innerHTML = `
+                    <div style="background: #0f172a; padding: 15px; border-radius: 5px; border-left: 4px solid #ef4444; color: #f8fafc;">
+                        <strong>❌ Error:</strong> ${data.error}
+                    </div>`;
+                return;
+            }
+
+            // 2. Formato para: Análisis de Sentimientos
+            if (data.aspects) {
+                let html = '<div style="font-family: sans-serif;">';
+                html += '<h4 style="color: #cbd5e1; margin-bottom: 10px;">🎭 Desglose de Sentimientos:</h4>';
+                html += '<ul style="list-style: none; padding: 0; margin: 0;">';
+                
+                data.aspects.forEach(aspecto => {
+                    let color = '#94a3b8'; 
+                    if (aspecto.sentiment === 'Positive') color = '#22c55e'; 
+                    if (aspecto.sentiment === 'Negative') color = '#ef4444'; 
+                    
+                    let porcentaje = (aspecto.scores[aspecto.sentiment] * 100).toFixed(1);
+
+                    html += `<li style="background: #0f172a; margin-bottom: 8px; padding: 10px; border-radius: 5px; border-left: 4px solid ${color}; color: #cbd5e1;">
+                                Elemento: <strong style="color: white;">"${aspecto.text}"</strong> <br>
+                                Sentimiento: <span style="color: ${color}; font-weight: bold;">${aspecto.sentiment}</span> 
+                                <span style="color: #64748b; font-size: 0.9em;">(Confianza: ${porcentaje}%)</span>
+                            </li>`;
+                });
+                html += '</ul></div>';
+                contenedor.innerHTML = html;
+            } 
+            // 3. Formato para: Traducción
+            else if (data.documents && data.documents[0].translatedText) {
+                const doc = data.documents[0];
+                let html = '<div style="font-family: sans-serif;">';
+                html += '<h4 style="color: #cbd5e1; margin-bottom: 10px;">A/字 Texto Traducido:</h4>';
+                html += `<div style="background: #0f172a; padding: 15px; border-radius: 5px; border-left: 4px solid #0ea5e9; font-size: 1.1em; color: #f8fafc;">
+                            ${doc.translatedText}
+                        </div>`;
+                html += `<p style="color: #64748b; font-size: 0.8em; margin-top: 10px;">
+                            Traducido de <strong>${doc.sourceLanguageCode.toUpperCase()}</strong> a <strong>${doc.targetLanguageCode.toUpperCase()}</strong>
+                        </p>`;
+                html += '</div>';
+                contenedor.innerHTML = html;
+            }
+            // 4. Formato para: Detectar Idioma Dominante
+            else if (data.languages) {
+                let html = '<div style="font-family: sans-serif;">';
+                html += '<h4 style="color: #cbd5e1; margin-bottom: 10px;">🌐 Idioma Detectado:</h4>';
+                
+                data.languages.forEach(lang => {
+                    let porcentaje = (lang.score * 100).toFixed(1);
+                    html += `<div style="background: #0f172a; padding: 15px; border-radius: 5px; border-left: 4px solid #a855f7; color: #f8fafc;">
+                                Idioma principal: <strong style="color: #c084fc; font-size: 1.1em;">${lang.name} (${lang.code})</strong><br>
+                                <span style="color: #64748b; font-size: 0.9em;">Certeza de detección: ${porcentaje}%</span>
+                            </div>`;
+                });
+                html += '</div>';
+                contenedor.innerHTML = html;
+            }
+            // 5. Formato para: Extraer Entidades
+            else if (data.entities) {
+                let html = '<div style="font-family: sans-serif;">';
+                html += '<h4 style="color: #cbd5e1; margin-bottom: 10px;">🏷️ Entidades Extraídas:</h4>';
+                
+                if (data.entities.length === 0) {
+                    html += '<p style="color: #64748b; font-style: italic;">No se identificaron entidades (lugares, fechas, nombres) en el texto.</p>';
+                } else {
+                    html += '<ul style="list-style: none; padding: 0; margin: 0;">';
+                    data.entities.forEach(entidad => {
+                        let porcentaje = (entidad.score * 100).toFixed(1);
+                        html += `<li style="background: #0f172a; margin-bottom: 8px; padding: 10px; border-radius: 5px; border-left: 4px solid #f59e0b; color: #cbd5e1;">
+                                    Valor: <strong style="color: white;">"${entidad.text}"</strong><br>
+                                    Tipo de Entidad: <span style="color: #fbbf24; font-weight: bold;">${entidad.type}</span> 
+                                    <span style="color: #64748b; font-size: 0.9em;">(Certeza: ${porcentaje}%)</span>
+                                </li>`;
+                    });
+                    html += '</ul>';
+                }
+                html += '</div>';
+                contenedor.innerHTML = html;
+            }
+            // 6. Formato para: Frases Clave (Se verán como "etiquetas" modernas)
+            else if (data.keyPhrases) {
+                let html = '<div style="font-family: sans-serif;">';
+                html += '<h4 style="color: #cbd5e1; margin-bottom: 10px;">🔑 Frases e Ideas Clave:</h4>';
+                html += '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+                
+                data.keyPhrases.forEach(frase => {
+                    html += `<span style="background: #0f172a; color: #38bdf8; padding: 8px 14px; border-radius: 20px; border: 1px solid #0284c7; font-weight: 500; font-size: 0.95em;">
+                                ${frase.text}
+                            </span>`;
+                });
+                
+                html += '</div></div>';
+                contenedor.innerHTML = html;
+            }
+            // Fallback de seguridad en caso de recibir una estructura inesperada
+            else {
+                contenedor.innerText = JSON.stringify(data, null, 2);
+            }
         }
     </script>
 </body>
